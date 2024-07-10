@@ -1,0 +1,78 @@
+# ACLED dataset can be  downloaded from the acled repository 
+conflict_df <- acled %>% 
+  mutate(event_type = 
+           case_when(event_type == "Protests" ~ "Protests_and_Riots",
+                     event_type == "Riots" ~ "Protests_and_Riots",
+                     TRUE ~ event_type)) %>% 
+  filter(year >= 2021 & sub_event_type != "Peaceful protest") %>%
+  group_by(admin3_pcode, event_type) %>% 
+  summarise(count = n(), 
+            .groups = "drop") %>%  
+  pivot_wider(names_from = event_type, 
+              values_from = count) %>% 
+  clean_names() %>% 
+  # This is the IDP dataset, I usually read it in from a secure folder
+  left_join(idps %>% select(total_idps, admin3_pcode), by = "admin3_pcode") %>% 
+  replace_na(list(battles = 0, 
+                  explosions_remote_violence = 0, 
+                  violence_against_civilians = 0,
+                  strategic_developments = 0, 
+                  protests_and_riots = 0, 
+                  total_idps = 0)) %>% 
+  left_join(acled %>% 
+              filter(year >= 2021) %>% 
+              group_by(admin3_pcode) %>% 
+              summarise(fatalities = sum(fatalities)), by = "admin3_pcode") %>% 
+  ungroup()
+
+index_shares <- conflict_df %>%   
+  mutate_at(vars(c(battles, explosions_remote_violence, 
+                   violence_against_civilians, fatalities,
+                   strategic_developments, protests_and_riots, 
+                   total_idps)), 
+            scale) %>%  
+  mutate_at(vars(c(battles, explosions_remote_violence, 
+                   violence_against_civilians, fatalities,
+                   strategic_developments, protests_and_riots, 
+                   total_idps)), 
+            funs((. - min(., na.rm = T))/(max(., na.rm = T) - min(., na.rm = T)))) %>% 
+  mdepriv(c("battles", 
+            "explosions_remote_violence", 
+            "violence_against_civilians", 
+            "fatalities", "strategic_developments", 
+            "protests_and_riots", 
+            "total_idps"),
+          method = "bv", 
+          output = "all")
+
+conflict_score <- conflict_df %>% 
+  left_join(index_shares2$data %>% 
+              select(admin3_pcode, 
+                     score_i,
+                     index_battles = battles, 
+                     index_explosions_remote_violence = explosions_remote_violence,
+                     index_violence_against_civilians = violence_against_civilians, 
+                     index_fatalities = fatalities, 
+                     index_strategic_developments = strategic_developments, 
+                     index_protests_and_riots = protests_and_riots), 
+            by = "admin3_pcode") %>% 
+  # This is just all for reference -- score_env is the baseline score 
+  # that any model should outperform 
+  mutate(env_battles = battles / max(battles), 
+         env_explosions_remote_violence = 
+           explosions_remote_violence / max(explosions_remote_violence),
+         env_violence_against_civilians = 
+           violence_against_civilians / max(violence_against_civilians), 
+         env_fatalities = fatalities / max(fatalities), 
+         score_env = (env_battles + 
+                        env_explosions_remote_violence + 
+                        env_violence_against_civilians + 
+                        env_fatalities) / 4) %>% 
+  left_join(acled %>% 
+              distinct(admin1, admin3, admin3_pcode), by = "admin3_pcode") %>%  
+  rename(conflict_score = score_i)
+
+# Write csv 
+conflict_score %>% do.call(data.frame, .) %>% as_tibble() %>% 
+  select(-total_idps) %>% write_csv("conflict_score.csv")
+

@@ -1,0 +1,26 @@
+{
+    "id": "0FACD5DF",
+    "path": "~/R/exploratory-data-analysis-acled-fsc/new_conflict_score/new_conflict_score.Rmd",
+    "project_path": null,
+    "type": "r_markdown",
+    "hash": "3878812665",
+    "contents": "",
+    "dirty": false,
+    "created": 1662661976920.0,
+    "source_on_save": false,
+    "relative_order": 2,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "129,79",
+        "scrollLine": "116"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1662662445,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1662662445770,
+    "read_only": false,
+    "read_only_alternatives": []
+}
